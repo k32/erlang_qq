@@ -1,0 +1,33 @@
+#+TITLE: erlang_qq
+
+A simple quasi-quotation parse transform for Erlang (extracted from =typerefl= library).
+
+It's dumb and inefficient, but it's only used to help creating parser transforms, so hopefully it's not used often enough to impact compilation time.
+
+How to use it:
+
+- ='$$'(...)= pseudo-function quotes its argument.
+- ='$'(...)= pseudo-function inside ='$$'= unquotes its argument.
+- Content of variables with =__AST= suffix is spliced in unquoted
+- ='$const(...)'= pseudo-function returns the AST of an erlang term corresponding to the argument
+
+#+begin_src erlang
+-compile({parse_transform, erlang_qq}).
+
+...
+
+create_form(Line, Default__AST) ->
+  %% Quote some code
+  '$$'(begin
+         Foo = case some_module:function() of
+                 {ok, Result} -> Result;
+                 undefined    -> Default__AST %% Here AST is spliced as is
+               end,
+         '$'(other_form('Foo')) %% Argument is executed and spliced in as is, unquoted
+       end).
+
+other_form(Line, Var) ->
+  {var, Line, Var}.
+#+end_src
+
+Known issues: code locations in the transformed code may be incorrect in some cases.
